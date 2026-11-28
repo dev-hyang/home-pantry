@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-28.36", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
+    { k: "better", zh: "整理了发布时的版本号检查；界面和操作都和上一版一样。", en: "Tidied up the release version checks; nothing changes in how the app looks or works." }
+  ] },
   { v: "2026-11-28.35", title: { zh: "用小票替换对账单整笔：可撤销，对账单页数字不变", en: "Replacing a bank line with a receipt is now undoable" }, items: [
     { k: "new", zh: "用小票替换对账单里的整笔时，那一笔不再直接删掉，而是放进「已被小票替换」：花费统计里不再算（不会重复），对账单页的笔数和合计仍然保留，方便核对。", en: "Replacing a bank-statement line with a receipt no longer deletes it: it is set aside, so spending totals do not double count, while the import page keeps its counts for reconciling." },
     { k: "new", zh: "银行导入 → 最近导入里能看到被替换的笔数，点开可以逐笔「撤销替换」。重新导入同一份对账单也不会把它们又加回来。", en: "Bank import → Recent imports shows how many were replaced and lets you undo each one. Re-importing the same statement will not add them back." },
