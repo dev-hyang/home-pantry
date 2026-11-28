@@ -73,7 +73,7 @@ function onRoute() {
   // 从目录或别的页进库存类清单：默认回到全部分类（从物品编辑页返回、或概览方块指定了分类时保留）
   if (isListRoute(next) && routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
     if (state.keepFilter) state.keepFilter = false;
-    else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all", owner: "all", ownerScope: false, added: "all", addKind: "all" });
+    else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all", owner: "all", ownerScope: false, added: "all", addKind: "all", aud: "all" });
   }
   // 从首页看板 / 别的页点进其他清单页（购物车、设备、账单、缴费记录、医疗、花费）：筛选回到默认再套上链接里的条件
   // （从物品 / 设备 / 账单编辑页返回、或同一页内换标签 / 参数不算）；不然上一次留下的筛选（如「家人认领」）会让看板上的数字和清单对不上
@@ -102,7 +102,7 @@ function onRoute() {
   // 概览的「最近入库 / 新物品」卡片带 ?added=7&kind=new 进库存：套上入库时间范围、按最近入库排序，再把参数去掉
   if (isListRoute(next) && next.q.get("added")) {
     const ad = next.q.get("added"), kd = next.q.get("kind");
-    Object.assign(state.filter, { space: next.q.get("space") === "house" ? "house" : next.q.get("space") === "pantry" ? "pantry" : "all", cat: "all", q: "", loc: "all", status: "all", added: ["7", "30", "90"].includes(ad) ? ad : "all", addKind: kd === "new" || kd === "restock" ? kd : "all", sort: "stocked" });
+    Object.assign(state.filter, { space: next.q.get("space") === "house" ? "house" : next.q.get("space") === "pantry" ? "pantry" : "all", cat: "all", q: "", loc: "all", status: "all", added: ["7", "30", "90"].includes(ad) ? ad : "all", addKind: kd === "new" || kd === "restock" ? kd : "all", aud: "all", sort: "stocked" });
     next.q.delete("added"); next.q.delete("kind"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }
   // 概览的「最常购买 / 花费最多」卡片带 ?sort= ?range= 进购买排行：套上排序和时间范围，再把参数去掉

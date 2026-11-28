@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-28.31", title: { zh: "库存里能看到、也能按「适用人群」筛选", en: "See and filter by who a medicine is for" }, items: [
+    { k: "new", zh: "标了适用人群的药品，在库存列表的小字里会显示（例如 👥儿童、成人）。", en: "Medicines with a tag now show it in the stock list (for example 👥 Children, Adults)." },
+    { k: "new", zh: "库存列表多了“按适用人群筛选”，还能找出药品里还没标人群的；没有任何物品标过时不会出现。", en: "The stock list can be filtered by who it is for, including medicines not tagged yet; it only appears once something is tagged." }
+  ] },
   { v: "2026-11-27.30", title: { zh: "药品可以标「适用人群」", en: "Medicines can be tagged with who they are for" }, items: [
     { k: "new", zh: "药品健康里的物品可多选适用人群：婴幼儿、儿童、成人、老人、孕妇；不选就是不限。", en: "Items in Medicine & Health can be tagged for infants, children, adults, seniors or pregnancy; leave empty for no limit." },
     { k: "better", zh: "物品详情页会显示适用人群。需要先在数据库执行 112 号升级脚本，之前不影响其他保存。", en: "The item page shows who it is for. The database upgrade 112 has to be run first; saving everything else works meanwhile." }

@@ -1,0 +1,1 @@
+import{b as e}from"./chunk-TRMRYA4T.js";import{M as r,f as o}from"./chunk-3WVUBITM.js";import{k as t}from"./chunk-WHLDLVFW.js";function i(){return e()?(r(t("用卡是只读的：家主开放财务权限后才能修改")),!0):!1}var c=()=>window.CARDS,u=n=>o(n??""),f=()=>Units.region.currency,m=()=>Math.round((Date.now()-new Date(`${c().AS_OF}T12:00:00`))/864e5);export{i as a,c as b,u as c,f as d,m as e};

@@ -4,6 +4,7 @@ import { orderedCats } from "./inventory-sync-common.js";
 import { ownerMatch } from "./owner.js";
 import { t } from "../core/i18n.js";
 import { addedActive, addedMatch } from "./stocked.js";
+import { audienceMatch } from "./item-audience.js";
 
 /** 按花费的二级分类分组显示（食品杂货 / 日用个护 / 家居家电…，js/core/taxonomy.js）：组的顺序 = 组里第一个分类在自定义顺序里的位置，组内保持自定义顺序 */
 export function groupedCats(space, cats = orderedCats(space)) {
@@ -19,6 +20,7 @@ export function matchItem(it, f, { withCat = true } = {}) {
   if (q && !(`${it.name}${it.subcategory || ""}${t(it.subcategory || "")}${it.notes || ""}${it.location || ""}${t(it.location || "")}`).toLowerCase().includes(q)) return false;
   if ((f.loc || "all") !== "all" && it.location !== f.loc) return false;
   if (!ownerMatch(it, f.owner, !!f.ownerScope)) return false;
+  if (!audienceMatch(it, f.aud)) return false;   // 药品适用人群（item-audience.js）
   if (addedActive(f) && !addedMatch(it, f.added, f.addKind)) return false;   // 近 N 天入库（stocked.js）
   if (f.status === "alert") return it.status !== "ok";
   if (f.status === "exp") return !!it.exp;

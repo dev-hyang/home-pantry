@@ -19,6 +19,7 @@ import { catFormHtml } from "./inventory-sync.js";
 import { groupedCats, matchItem } from "./inventory-match.js";
 import { lpAttr } from "../core/long-press.js";
 import { addedActive, stockStamp } from "./stocked.js";
+import { audienceFilter, audienceLabel } from "./item-audience.js";
 
 export function invView() { try { return localStorage.getItem(VIEW_KEY) === "cats" ? "cats" : "rows"; } catch { return "rows"; } }
 const viewSeg = (cur) => `<div class="view-bar">${viewSwitch([["rows", "物品", "☰"], ["cats", "分类", "▦"]], cur, { action: "inv-view", attr: "view" })}</div>`;
@@ -47,7 +48,7 @@ function viewInvRows(space) {
           ${[["all", "全部状态"], ["alert", "需要补货"], ["out", "缺货"], ["low", "少货"], ["soon", "即将告罄"], ["exp", "临期或过期"], ["ok", "充足"]]
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>`}
-        ${locationFilter(all, f)}
+        ${locationFilter(all, f)}${audienceFilter(all, f)}
         ${addedFilter(f)}
         ${ownerFilter(f)}
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
@@ -109,7 +110,7 @@ function remindChip(it, plain) {
 /** 物品一行：状态色条 | 名称、状态 / 提醒标签、小类 · 位置 · 约够几天 | − 数量 单位 + */
 export function itemRow(it) {
   const st = STATUS[it.status], c = catOf(it.category), inList = openShopFor(it.id);
-  const meta = [`${c.icon} ${esc(t(it.subcategory || c.name))}`, ownerTag(it) && `<span class="own-tag">${esc(ownerTag(it))}</span>`, it.location && `📍${esc(t(it.location))}`,
+  const meta = [`${c.icon} ${esc(t(it.subcategory || c.name))}`, ownerTag(it) && `<span class="own-tag">${esc(ownerTag(it))}</span>`, it.location && `📍${esc(t(it.location))}`, audienceLabel(it) && `👥${esc(audienceLabel(it))}`,
     it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`, showStock() && esc(stockStamp(it, state.filter.addKind))].filter(Boolean).join(" · ");
   const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : remindChip(it, !!state.invSel)}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}${inList ? cartTag() : ""}`;
   const step = Units.step(it.du), nm = esc(it.name), sel = state.invSel, on = sel?.has(it.id);
@@ -168,7 +169,7 @@ export function viewInventory(space = "all") {
           ${[["all", "全部状态"], ["alert", "需要补货"], ["out", "缺货"], ["low", "少货"], ["soon", "即将告罄"], ["exp", "临期或过期"], ["ok", "充足"]]
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>`}
-        ${locationFilter(mine, f)}
+        ${locationFilter(mine, f)}${audienceFilter(mine, f)}
         ${addedFilter(f)}
         ${house ? ownerFilter(f) : ""}
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.filter(([v]) => !(gear && v === "exp")).map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>

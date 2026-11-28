@@ -4690,4 +4690,5 @@ export const EN = {
   "补货或新入库": "Restocked or new", "最近入库把新物品也算进去；视图切换更好认": "Recently stocked includes new items; clearer view switch",
   "适用人群": "For", "适用人群（可多选）": "Suitable for (pick any)", "婴幼儿": "Infants & toddlers", "儿童": "Children", "成人": "Adults", "老人": "Seniors", "孕妇": "Pregnancy",
   "按人群找药、避免拿错；不选就是不限。": "Helps you find the right medicine and avoid mix-ups; leave empty for no limit.",
+  "按适用人群筛选": "Filter by who it is for", "全部人群": "Everyone", "药品里还没标人群": "Medicines not tagged yet",
 };

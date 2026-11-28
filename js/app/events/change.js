@@ -75,6 +75,7 @@ export async function onMainChange(e) {
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
   if (e.target.id === "invOwner") { Object.assign(state.filter, { owner: e.target.value, ownerScope: false }); renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
+  if (e.target.id === "invAud") { state.filter.aud = e.target.value; renderInvList(); }
   if (e.target.id === "invAdded" || e.target.id === "invAddKind") { Object.assign(state.filter, e.target.id === "invAdded" ? { added: e.target.value } : { addKind: e.target.value }); render(); }   // 入库时间范围会多 / 少一个「新物品 / 补货」下拉，所以整页重画
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
   if (e.target.id === "ovRange") { setOverviewRange(e.target.value); render(); }
