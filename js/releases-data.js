@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.20", title: { zh: "截图遮盖：拖框涂黑再发送", en: "Screenshot cover: black out parts before sending" }, items: [
+    { k: "new", zh: "线上订单的截图缩略图下面新增「遮盖」：在图上拖框把收货地址、姓名等涂黑，完成后才会发送涂黑后的图（真的把像素涂成黑色）。", en: "Online-order screenshots now have a Cover button under the thumbnail: drag boxes over the address, name and so on; the blacked-out image (pixels really replaced) is what gets sent." },
+    { k: "better", zh: "发送前的确认会分别写明：有几张图原样发送、有几张已涂黑。", en: "The confirmation before sending says how many images go as-is and how many are blacked out." },
+  ] },
   { v: "2026-11-27.19", title: { zh: "订单隐私：发给 AI 前先抹掉个人信息", en: "Online orders: personal info removed before it goes to AI" }, items: [
     { k: "new", zh: "粘贴订单文字时，收货地址、姓名、电话、邮箱、卡号、订单号会先在本机抹掉，只把商品、价格、日期发给 AI。", en: "When you paste an order, the shipping address, name, phone, email, card and order numbers are removed on this device first; only products, prices and dates go to the AI." },
     { k: "better", zh: "线上订单发给 AI 前会弹出确认，写明发什么；截图提醒只截商品和价格部分，不要带收货地址。", en: "Online orders now ask for confirmation before sending, saying exactly what goes out; for screenshots, capture only products and prices, not the address." },

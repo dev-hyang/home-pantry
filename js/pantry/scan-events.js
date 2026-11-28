@@ -115,7 +115,9 @@ function orderSendWarn() {
   const prov = t(providerOf(aiSettings().provider).name), r = redactOrderText(sc.text), n = droppedTotal(r.dropped);
   const parts = [];
   if (sc.text.trim()) parts.push(t("文字：已在本机抹掉 {n} 处地址 / 姓名 / 电话 / 邮箱 / 卡号 / 订单号，只发商品、价格、日期。", { n }));
-  if (sc.images.length) parts.push(t("图片：{n} 张会原样发送，看一下有没有收货地址、姓名（没有就继续，有就取消，截图时只截商品和价格部分）。", { n: sc.images.length }));
+  const plain = sc.images.filter((im) => !im.masked).length;
+  if (plain) parts.push(t("图片：{n} 张会原样发送，看一下有没有收货地址、姓名（没有就继续；有就取消，点图下面的「遮盖」涂黑，或重新只截商品和价格部分）。", { n: plain }));
+  if (sc.images.length > plain) parts.push(t("图片：{n} 张已涂黑你框起来的部分。", { n: sc.images.length - plain }));
   return t("将发给 {p}：", { p: prov }) + "\n" + parts.join("\n") + "\n" + t("继续？");
 }
 async function run() {
@@ -243,6 +245,10 @@ export function scanAction(action, el, ctx) {
       repaint(); updateSum(); const last = [...document.querySelectorAll(`.scan-rcpt[data-r="${+el.dataset.r}"] .scan-fee-row [name="name"]`)].pop(); last?.focus(); return;
     }
     case "scan-img-del": sc.images.splice(+el.dataset.i, 1); return repaint();
+    case "scan-img-mask": {   // 遮盖：弹出全屏层，拖框涂黑，完成后换成涂黑后的新图（模块按需加载）
+      const i = +el.dataset.i, im = sc.images[i]; if (!im) return;
+      return import("./scan-mask.js").then(({ openMask }) => openMask(im)).then((out) => { if (out) { sc.images[i] = out; repaint(); } });
+    }
     case "scan-run": return run();
     case "scan-back": if (sc.result?.manual) { startManual(); return repaint(); } sc.step = "input"; sc.result = null; sc.error = ""; return repaint();
     case "scan-confirm": return confirm(ctx);

@@ -4821,3 +4821,11 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .stock-log .sl-when { color: var(--muted); font-size: 13px; }
 .stock-log .sl-qty { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 @media (max-width: 440px) { .stock-log .sl-row { grid-template-columns: minmax(0, 1fr) auto; } .stock-log .sl-when { grid-column: 1 / -1; } .stock-log .sl-row .ui-btn { grid-column: 1 / -1; justify-self: end; } }
+
+/* 录入购物：截图遮盖（全屏层，拖框涂黑） */
+.scan-thumbbox { display: grid; gap: 6px; justify-items: stretch; width: 84px; }
+.scan-mask { position: fixed; inset: 0; z-index: 400; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); background: var(--bg, #fff); }
+.scan-mask-head p { margin: 4px 0 0; font-size: 12.5px; }
+.scan-mask-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; background: var(--surface-2); border-radius: var(--r-sm); padding: 8px; }
+.scan-mask-stage canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; touch-action: none; cursor: crosshair; box-shadow: 0 0 0 1px var(--line); }
+body.scan-mask-open { overflow: hidden; }
