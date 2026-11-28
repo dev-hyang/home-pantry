@@ -3,6 +3,7 @@ import { MUTE_FOREVER, catOf, num, spaceOf, toast, todayISO } from "../core/util
 import { Store } from "../core/store.js";
 import { aliasesOf, findItem, normName } from "../core/item-match.js";
 import { muteChoice } from "./item-form-fields.js";
+import { audienceOf, readAudience, sameAudience } from "./item-audience.js";
 import { resolveLocation } from "../core/locations.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
@@ -78,6 +79,10 @@ export async function saveItemForm(f, { silent = false } = {}) {
     if (sid && fe.buy_mode && !gear) {   // 采购方式 / 订阅周期：单独存（没执行迁移 100 时提示一句，物品本身已经保存）
       const bm = fe.buy_mode.value || null, ev = Math.round(num(fe.subscribe_every_days?.value)) || null;
       if (bm !== (raw.buy_mode || null) || ev !== (raw.subscribe_every_days || null)) { try { await Store.setItemBuy(sid, bm, ev); } catch (e) { toast(e.message); } }
+    }
+    if (sid && fe.category) {   // 适用人群：单独存（没执行迁移 112 时提示一句，物品本身已经保存）；没选过也没存过就不碰这一列
+      const au = readAudience(f), was = audienceOf(raw);
+      if (!sameAudience(au, was)) { try { await Store.setItemAudience(sid, au); } catch (e) { toast(e.message); } }
     }
     if (silent) return true;
     toast(it.id ? t("已保存修改") : t("已添加 {name}", { name }));

@@ -14,6 +14,7 @@ import { locationField } from "../core/locations.js";
 import { autofillBar } from "../core/autofill.js";
 import { unitSelect } from "../core/unit-pick.js";
 import { assetField, buyField, guessCategory, muteField } from "./item-form-fields.js";
+import { audienceField, syncAudience } from "./item-audience.js";
 import { cartTag, statusTag } from "./inventory-items.js";
 import { categoryOptions } from "./meals-sync.js";
 import { cardSelectHtml } from "../bills/card-picker.js";
@@ -172,7 +173,7 @@ export function viewItemForm() {
             <label class="span-2 not-gear">${t("每天大约用多少（可选）")}
               <input name="avg_daily_use" ${numAttrs("qty")} placeholder="${t("留空则根据家人的使用记录自动估算")}" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
             </label>
-            ${it ? muteField(v) : ""}${buyField(v)}
+            ${it ? muteField(v) : ""}${buyField(v)}${audienceField(v)}
           </div>`, true)}
         ${fsec(it?.id, "notes", t("备注"), `
           <label class="sr-only" for="itemNotes">${t("备注")}</label>
@@ -202,6 +203,7 @@ document.addEventListener("input", (e) => {
     if (e.target.checked && f.elements.alert_mute?.value === "forever") f.elements.alert_mute.value = "";
     return;
   }   // 手动改过单位就不再按名字猜
+  if (e.target.name === "category" && e.target.closest?.("#itemForm")) syncAudience(e.target.form);   // 只有药品健康显示「适用人群」
   if ((e.target.name === "category" || e.target.name === "subcategory") && e.target.closest?.("#itemForm") && e.isTrusted) { e.target.form.dataset.catTouched = "1"; return; }   // 自己选过分类：不再按名字改
   if (e.target.name !== "name" || !e.target.closest?.("#itemForm")) return;
   guessCategory(e.target.form, e.target.value);

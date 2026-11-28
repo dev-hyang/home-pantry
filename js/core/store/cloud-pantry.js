@@ -107,6 +107,12 @@ export const cloudPantry = {
     if (r.error && /alert_mute_until/.test(r.error.message || "")) throw new Error("数据库还没升级：请先执行 migrations/030_item_alert_mute.sql");
     this.must(r);
   },
+  /** 药品适用人群（迁移 112；单独存：没执行迁移的库，物品其余保存照常）；list = infant / child / adult / senior / pregnant 的数组 */
+  async setItemAudience(id, list) {
+    const r = await this.sb.from("items").update({ audience: list }).eq("id", id);
+    if (r.error && /audience/.test(r.error.message || "")) throw new Error("数据库还没升级：请先执行 migrations/112_item_audience.sql");
+    this.must(r);
+  },
   /** 采购方式 + 订阅周期（单独存：没执行迁移 100 的库，物品其余保存照常）；mode = online / bulk / fresh / other / null（自动） */
   async setItemBuy(id, mode, every) {
     const r = await this.sb.from("items").update({ buy_mode: mode || null, subscribe_every_days: every || null }).eq("id", id);

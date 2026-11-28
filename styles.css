@@ -4831,3 +4831,6 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .scan-mask-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; background: var(--surface-2); border-radius: var(--r-sm); padding: 8px; }
 .scan-mask-stage canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; touch-action: none; cursor: crosshair; box-shadow: 0 0 0 1px var(--line); }
 body.scan-mask-open { overflow: hidden; }
+/* 药品适用人群：一组勾选项，窄屏自动折行，每项点按区域 ≥44px */
+.aud-opts { display: flex; flex-wrap: wrap; gap: 0 6px; margin: 0 -8px; }
+.form-grid .item-audience > span { font-size: 13px; font-weight: 700; }

@@ -2,6 +2,7 @@
  * 第一块：名称（靠左）+ 状态标志（缺货 / 少货 / 已加入购物车…，跟在名称后面）+ 右上角 ⋯（拍包装录入、加入 / 移出购物车、复制为新物品、删除）；
  * 下面每一块（基本信息 / 数量与提醒 / 备注）各带自己的「编辑」，点进去只改这一块（#/item/<id>?edit=basic|qty|notes，表单在 item-form.js）。
  * 详情页没有底部保存栏，底部导航保留。 */
+import { audienceLabel } from "./item-audience.js";
 import { state } from "../core/state.js";
 import { aliasesOf } from "../core/item-match.js";
 import { moreMenu } from "../core/more-menu.js";
@@ -23,7 +24,7 @@ function basicFacts(it, spaceInfo) {
   const sp = spaceOf(it.category), info = spaceInfo.find(([s]) => s === sp), gear = sp === "gear", c = catOf(it.category);
   const assets = Array.isArray(it.asset_ids) ? linkableAssets().filter((a) => it.asset_ids.includes(a.id)).map(assetLabel) : [];
   const ok = ownerKey(it);
-  return dl([fact(t("别名"), aliasesOf(it.id).map(esc).join("、")), fact(t("组别"), info ? `${info[1]} ${esc(t(info[2]))}` : ""), fact(t("大类"), `${c.icon || ""} ${esc(t(c.name))}`.trim()), fact(t("小类"), it.subcategory ? esc(t(it.subcategory)) : ""),
+  return dl([fact(t("别名"), aliasesOf(it.id).map(esc).join("、")), fact(t("组别"), info ? `${info[1]} ${esc(t(info[2]))}` : ""), fact(t("大类"), `${c.icon || ""} ${esc(t(c.name))}`.trim()), fact(t("小类"), it.subcategory ? esc(t(it.subcategory)) : ""), fact(t("适用人群"), esc(audienceLabel(it))),
     fact(t("位置"), it.location ? esc(it.location) : ""), gear ? "" : fact(t("保质期至"), it.expiry_date ? esc(fmtDate(it.expiry_date)) : ""),
     sp === "house" && showOwner() && ok ? fact(t("归属"), esc(ownerName(ok))) : "", sp === "house" && assets.length ? fact(t("关联设备"), assets.map(esc).join("、")) : ""]);
 }

@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.30", title: { zh: "药品可以标「适用人群」", en: "Medicines can be tagged with who they are for" }, items: [
+    { k: "new", zh: "药品健康里的物品可多选适用人群：婴幼儿、儿童、成人、老人、孕妇；不选就是不限。", en: "Items in Medicine & Health can be tagged for infants, children, adults, seniors or pregnancy; leave empty for no limit." },
+    { k: "better", zh: "物品详情页会显示适用人群。需要先在数据库执行 112 号升级脚本，之前不影响其他保存。", en: "The item page shows who it is for. The database upgrade 112 has to be run first; saving everything else works meanwhile." }
+  ] },
   { v: "2026-11-27.29", title: { zh: "小票 / 订单里新建的物品默认不提醒", en: "Items created from receipts and orders no longer remind by default" }, items:
     [{ k: "fix", zh: "从小票或订单录入时新建的物品，不再自动带上“快用完”提醒，和手动新建一致；需要时到物品页打开“提醒补货”。", en: "Items created while entering a receipt or order no longer come with a running-out reminder, same as adding by hand; turn on “Remind to restock” on the item when you want it." }] },
   { v: "2026-11-27.28", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [

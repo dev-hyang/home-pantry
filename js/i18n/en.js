@@ -4688,4 +4688,6 @@ export const EN = {
   "粘贴订单文字时，收货地址、姓名、电话、邮箱、卡号、订单号会先在本机抹掉，只把商品、价格、日期发给 AI。": "When you paste an order, the shipping address, name, phone, email, card and order numbers are removed on this device first; only products, prices and dates go to the AI.",
   "线上订单发给 AI 前会弹出确认，写明发什么；截图提醒只截商品和价格部分，不要带收货地址。": "Online orders now ask for confirmation before sending, saying exactly what goes out; for screenshots, capture only products and prices, not the address.",
   "补货或新入库": "Restocked or new", "最近入库把新物品也算进去；视图切换更好认": "Recently stocked includes new items; clearer view switch",
+  "适用人群": "For", "适用人群（可多选）": "Suitable for (pick any)", "婴幼儿": "Infants & toddlers", "儿童": "Children", "成人": "Adults", "老人": "Seniors", "孕妇": "Pregnancy",
+  "按人群找药、避免拿错；不选就是不限。": "Helps you find the right medicine and avoid mix-ups; leave empty for no limit.",
 };
