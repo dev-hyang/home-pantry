@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.21", title: { zh: "订单去重：同一个订单不会录两次", en: "Online orders: the same order is not recorded twice" }, items: [
+    { k: "new", zh: "粘贴的订单文字里有订单号时，录入会记下指纹（订单号只在本机，不发给 AI）；同一个订单再录一次，会提示「已经录入过」并默认跳过。", en: "When the pasted order text has an order number, the entry is fingerprinted (the number stays on this device and is never sent to the AI); recording the same order again says it has already been recorded and skips it by default." },
+    { k: "better", zh: "需要先在数据库执行 109 号迁移（银行对账单防重已经用到的那一个）；没执行时照常录入，只是不防重。", en: "Needs migration 109 in the database (the one bank-statement de-duplication already uses); without it entries work as before, just without the check." },
+  ] },
   { v: "2026-11-27.20", title: { zh: "截图遮盖：拖框涂黑再发送", en: "Screenshot cover: black out parts before sending" }, items: [
     { k: "new", zh: "线上订单的截图缩略图下面新增「遮盖」：在图上拖框把收货地址、姓名等涂黑，完成后才会发送涂黑后的图（真的把像素涂成黑色）。", en: "Online-order screenshots now have a Cover button under the thumbnail: drag boxes over the address, name and so on; the blacked-out image (pixels really replaced) is what gets sent." },
     { k: "better", zh: "发送前的确认会分别写明：有几张图原样发送、有几张已涂黑。", en: "The confirmation before sending says how many images go as-is and how many are blacked out." },

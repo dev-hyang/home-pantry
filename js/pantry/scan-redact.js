@@ -33,7 +33,7 @@ export function redactOrderText(raw) {
   }
   let text = out.join("\n");
   const count = (re, key, rep) => { text = text.replace(re, () => { dropped[key]++; return rep; }); };
-  text = text.replace(ORDER_NO, (m) => { if (!orderRefs.includes(m)) orderRefs.push(m); return "[订单号]"; });
+  text = text.replace(ORDER_NO, (m) => { if (!orderRefs.includes(m)) orderRefs.push(m); return `[订单号#${orderRefs.indexOf(m) + 1}]`; });   // 占位符带序号：AI 能说「这张小票是 #2」，订单号本身不出本机
   count(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "contact", "[邮箱]");
   count(/(?:\+?1[ .-]?)?\(?\b\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b/g, "contact", "[电话]");
   count(/(?:ending\s+in|ends\s+with|last\s*4(?:\s*digits)?|尾号)\s*:?\s*\d{4}\b/gi, "card", "[卡尾号]");

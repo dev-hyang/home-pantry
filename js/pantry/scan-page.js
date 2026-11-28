@@ -112,6 +112,7 @@ function receiptHtml(r, ri, many, cur) {
         ${cardSelectHtml("pay", r.pay) ? `<label>${t("怎么付的")}${cardSelectHtml("pay", r.pay)}</label>` : ""}
         <label>${t("购买日期")}<input name="date" type="date" max="${todayISO()}" value="${esc(r.date)}"><small class="${r.dateSrc === "today" ? "form-error" : "muted"}">${r.dateSrc === "user" ? t("你填的日期") : r.dateSrc === "receipt" ? t("取自小票 / 文字，不对可以改") : t("没有读到日期，先用今天；补记的话请改成实际购买日")}</small></label>
       </div>
+      ${r.refDup ? `<div class="rcpt-refdup" role="status"><p class="dup-hint">⚠ ${t("这个订单（订单号 …{n}）已经录入过了，默认不再录入这一张。", { n: esc(String(r.orderRef || "").slice(-4)) })}</p><label class="check-inline"><input type="checkbox" name="refforce" ${r.refForce ? "checked" : ""}><span>${t("这次是新的，仍然录入")}</span></label></div>` : ""}
       <div class="rcpt-dup" role="status" hidden></div>
       <div class="rcpt-lump" role="status" hidden></div>
       <p class="muted scan-past" ${r.date < todayISO() ? "" : "hidden"} style="margin:8px 0 0;font-size:13px">📌 ${t("补记以前的购物：默认只记花费，不入库（东西多半已经用掉）。要加库存的行，把“放进库存”改成对应物品。")}</p>

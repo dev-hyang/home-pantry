@@ -12,6 +12,8 @@ import { spendChanged } from "../core/spend-data.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { MAX_IMAGES, repaint, resetScan, sc, subGuess } from "./scan-common.js";
+import { addKeyed, markOrderRefs } from "./scan-order.js";
+import { keyOrderRows } from "./scan-order-key.js";
 import { revealInto } from "../core/reveal.js";
 import { compressImage as compress } from "../core/autofill-common.js";
 import { purchasePayFields } from "../bills/card-picker.js";
@@ -139,14 +141,15 @@ async function run() {
       const { system, user } = scanPrompt(sc.mode === "merge" ? "merge" : "auto");
       parts = [parseJson(await askText(system, user, { ...opts, images: sc.images }))];
     }
-    sc.result = normalize(parts); sc.step = "review"; if (sc.result.receipts.length) sc.error = "";
+    sc.result = normalize(parts); await markOrderRefs(sc.result.receipts); sc.step = "review"; if (sc.result.receipts.length) sc.error = "";
   } catch (e) { sc.error = e.message || String(e); }
   finally { sc.busy = false; sc.progress = ""; repaint(); updateSum(); }
 }
 /** 读表单里的每一行，写库存 + 采购花费；已有物品按单位换算，匹配到的购物车项顺手标成已买到 */
 async function confirm(ctx) {
   const f = $("#scanForm"); if (!f) return;
-  const cur = Units.region.currency, boxes = [...f.querySelectorAll(".scan-rcpt")].filter((b) => b.querySelector('[name="rinc"]')?.checked !== false);
+  const cur = Units.region.currency, rcOf = (b) => sc.result.receipts[+b.dataset.r], refSkip = (b) => rcOf(b)?.refDup && !b.querySelector('[name="refforce"]')?.checked;   // 订单号已录过又没勾「仍然录入」：这张不录
+  const boxes = [...f.querySelectorAll(".scan-rcpt")].filter((b) => b.querySelector('[name="rinc"]')?.checked !== false && !refSkip(b));
   const rows = boxes.flatMap((box, bi) => {
     const store = cleanStore(box.querySelector('[name="store"]').value), date = box.querySelector('[name="date"]').value || todayISO(), now = new Date(`${date}T12:00:00`).toISOString();
     const pay = purchasePayFields(box.querySelector('[name="pay"]')?.value || "");   // 这张小票怎么付的：卡 → card_id，现金 / 支票 / 礼品卡 → method
@@ -156,6 +159,8 @@ async function confirm(ctx) {
       return { bi, store, now, pay, name: nm, qty: num(g("qty"), 0), unit: Units.normalize(g("unit")) || "个", amount: g("amount") === "" ? null : Math.round(num(g("amount")) * 100) / 100,   /* 负数 = 退货 / 整单优惠（11-14：以前被截成 0） */ target: same ? same.id : g("target"), cat: g("cat"), fee: r.classList.contains("scan-fee-row") };
     });
   });
+  if (!boxes.length && [...f.querySelectorAll(".scan-rcpt")].some(refSkip)) { sc.error = t("这个订单已经录入过了。要再录一次，勾选订单上方的「这次是新的，仍然录入」。"); return repaint2(); }
+  keyOrderRows(boxes, rows, rcOf);
   if (!rows.length) { sc.error = t("没有勾选任何一行。"); return repaint2(); }
   if (rows.some((x) => !x.name)) { sc.error = t("有一行没有名称。"); return repaint2(); }
   if (rows.some((x) => x.target !== "__skip" && !x.qty)) { sc.error = t("入库的行数量不能是 0。"); return repaint2(); }
@@ -195,7 +200,7 @@ async function confirm(ctx) {
       if (stockOnly && x.target === "__skip") continue;   // 只入库：选了「只记花费」的行什么都不做
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
       let purchaseId = null;
-      if (!stockOnly) purchaseId = await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
+      if (!stockOnly) purchaseId = await addKeyed({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay, ...(x.key ? { import_key: x.key } : {}) });
       const cart = x.fee || x.qty < 0 ? null : matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || myName() }); }
       if (x.target === "__skip") { spendOnly++; continue; }
@@ -222,7 +227,7 @@ function repaint2() {
   if (f && sc.result) {
     f.querySelectorAll(".scan-rcpt").forEach((box) => {
       const rc = sc.result.receipts[+box.dataset.r]; if (!rc) return;
-      rc.include = box.querySelector('[name="rinc"]')?.checked !== false; rc.store = box.querySelector('[name="store"]').value; rc.date = box.querySelector('[name="date"]').value; rc.pay = box.querySelector('[name="pay"]')?.value ?? rc.pay;
+      rc.include = box.querySelector('[name="rinc"]')?.checked !== false; rc.refForce = !!box.querySelector('[name="refforce"]')?.checked; rc.store = box.querySelector('[name="store"]').value; rc.date = box.querySelector('[name="date"]').value; rc.pay = box.querySelector('[name="pay"]')?.value ?? rc.pay;
       box.querySelectorAll(".scan-row").forEach((r) => {
         const x = rc.rows[+r.dataset.i], g = (n) => r.querySelector(`[name="${n}"]`).value;
         Object.assign(x, { include: r.querySelector('[name="inc"]').checked, name: g("name"), qty: num(g("qty"), 0), unit: g("unit"), amount: g("amount") === "" ? null : num(g("amount")), category: g("cat"), match: g("target") === "__new" ? "" : g("target") === "__skip" ? "skip" : g("target") });

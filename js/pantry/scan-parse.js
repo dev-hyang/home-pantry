@@ -37,6 +37,7 @@ export function scanPrompt(multi = "auto") {
     `Today is ${todayISO()}.`,
     "date = the purchase / order date as YYYY-MM-DD. Look for it on the receipt (usually near the top or bottom, next to the time) or in the order details; for pasted text, also understand phrases like \"last Saturday\" or \"10/18\" relative to today (US order: month/day unless the year comes first). If the year is missing, use the most recent past date. Never a future date. null only if there is truly no date.",
     "total = grand total as a number if visible, else null.",
+    "ORDER NUMBERS in the pasted text are replaced by tokens like [订单号#2]. For each receipt / order return ref = the integer of its token (2 for [订单号#2]), or null when it has none. Never invent a number.",
     "PRIVACY: ignore and NEVER output any person name, street address, phone number, email, card or account number, order number or tracking number, even if one is still visible in the text or image. Product names, quantities, prices, taxes, fees, dates and the store name are all that is needed.",
   ].join("\n");
   const user = [
@@ -45,7 +46,7 @@ export function scanPrompt(multi = "auto") {
     sc.date ? `The user says the purchase date is ${sc.date}; use it as date for every receipt.` : "",
     sc.text.trim() ? `Pasted text:\n${redactOrderText(sc.text).text.slice(0, 12000)}` : "",   // 发送前先在本机抹掉地址、姓名、电话、邮箱、卡号、订单号
     sc.images.length ? `${multi === "one" ? 1 : sc.images.length} image(s) attached.` : "",
-    'Return exactly: {"receipts":[{"store":"","date":null,"currency":"","total":null,"lines":[{"raw":"original line","name":"","qty":1,"unit":"","amount":null,"match":null,"category":"other","skip":false,"order_discount":false,"fee":null}]}]}',
+    'Return exactly: {"receipts":[{"ref":null,"store":"","date":null,"currency":"","total":null,"lines":[{"raw":"original line","name":"","qty":1,"unit":"","amount":null,"match":null,"category":"other","skip":false,"order_discount":false,"fee":null}]}]}',
   ].filter(Boolean).join("\n");
   return { system, user };
 }
@@ -101,7 +102,7 @@ function buildReceipt(j) {
   if (sc.record === "spend") for (const r of rows) r.match = "skip";   // 补记以前的购物：东西多半已经用掉，默认只记花费、不加库存（要入库的行再改）
   const total = j?.total == null ? null : num(j.total, NaN);
   addGapRow(rows, Number.isFinite(total) ? total : null);
-  return { include: true, store: String(j?.store || "").trim().slice(0, 40), date, dateSrc, total: Number.isFinite(total) ? total : null, rows };
+  return { include: true, refNo: Number.isInteger(j?.ref) ? j.ref : null, store: String(j?.store || "").trim().slice(0, 40), date, dateSrc, total: Number.isFinite(total) ? total : null, rows };
 }
 /** 万一模型还是把折扣单独列成一行（负数金额，Costco「000399701 /Pomegranate 3.00-」这种）：并进它折扣的那件商品——
  *  往上找同名（或名字互相包含）的正价行；找不到、而原文是「/商品名」或 TPD / 优惠券写法的，并进紧挨着的上一行正价商品。

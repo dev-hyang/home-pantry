@@ -49,4 +49,5 @@ test("同一个订单号出现多次只记一次；多个订单号都记下", ()
   const r = redactOrderText("Order # 112-1111111-2222222\nOrder # 112-1111111-2222222\nOrder # 113-3333333-4444444");
   assert.deepEqual(r.orderRefs, ["112-1111111-2222222", "113-3333333-4444444"]);
   assert.ok(!/\d{3}-\d{7}-\d{7}/.test(r.text));
+  assert.equal(r.text, ["Order # [订单号#1]", "Order # [订单号#1]", "Order # [订单号#2]"].join("\n"));   // 占位符按订单号出现顺序编号
 });

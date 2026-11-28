@@ -899,6 +899,9 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 /* 整张小票可能已经录过：小票顶上一块提醒 + 两个选项（11-14） */
 .rcpt-dup { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--soon); border-radius: 10px; background: color-mix(in srgb, var(--soon) 8%, transparent); }
 .rcpt-dup .dup-hint { margin: 0 0 8px; }
+.rcpt-refdup { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--soon); border-radius: 10px; background: color-mix(in srgb, var(--soon) 8%, transparent); }   /* 订单号已录过的提醒：样子和 .rcpt-dup 一样，但是单独的类，免得被「疑似重复」的脚本当成它的容器改写 */
+.rcpt-refdup .dup-hint { margin: 0 0 8px; }
+.rcpt-refdup .check-inline { min-height: 44px; align-items: center; font-size: 13px; }
 .rcpt-dup .chips { flex-wrap: wrap; margin: 0 0 6px; padding: 0; overflow: visible; }
 .rcpt-dup .chip { min-height: 44px; }
 .rcpt-dup-how { margin: 0; font-size: 12.5px; }
