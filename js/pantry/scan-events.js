@@ -18,6 +18,7 @@ import { keyOrderRows } from "./scan-order-key.js";
 import { revealInto } from "../core/reveal.js";
 import { compressImage as compress } from "../core/autofill-common.js";
 import { purchasePayFields } from "../bills/card-picker.js";
+import { pastAt } from "./stock-at.js";
 import { myName } from "../settings/family-lite.js";
 import { cleanStore, rememberStore } from "../stats/store-lite.js";
 
@@ -190,9 +191,10 @@ async function confirm(ctx) {
     // 先建新物品（同名同分类合并成一条，几张小票的也合并）：这一步失败时还没写任何花费和库存，可以直接重试
     for (const x of rows.filter((r) => r.target === "__new" && !r.replace)) {
       const key = normName(x.name), ex = newItems.get(key);   // 几行同名（不管分类）合成一件
-      if (ex) ex.quantity = Math.round((ex.quantity + x.qty) * 100) / 100;
+      const at = pastAt(x.now);   // 补录以前的购物：新物品算购买那天建的（几张小票合并时取最早的一天）
+      if (ex) { ex.quantity = Math.round((ex.quantity + x.qty) * 100) / 100; if (at && (!ex.created_at || at < ex.created_at)) ex.created_at = at; }
       else newItems.set(key, { name: x.name.slice(0, 60), category: x.cat, subcategory: subGuess(x.name, x.cat), unit: x.unit, quantity: Math.round(x.qty * 100) / 100, min_quantity: 0,
-        location: catOf(x.cat).loc || null, expiry_date: null, lead_days: 0, avg_daily_use: null, notes: null });   // 新物品默认不提醒：少货线、提前天数都是 0（和手动新建一致，要提醒再到物品页打开）
+        location: catOf(x.cat).loc || null, expiry_date: null, lead_days: 0, avg_daily_use: null, notes: null, ...(at ? { created_at: at } : {}) });   // 新物品默认不提醒：少货线、提前天数都是 0（和手动新建一致，要提醒再到物品页打开）
     }
     if (newItems.size) { await Store.addItems([...newItems.values()]); created = newItems.size; }
     for (const x of rows) {
@@ -212,7 +214,7 @@ async function confirm(ctx) {
         const fit = Units.fit(x.unit, item.unit), add = fit.kind === "mismatch" ? x.qty : x.qty * fit.factor;   // 能换算的换成库存单位；计数单位之间 1:1
         if (fit.kind === "mismatch") warns.push(x.name);
         else if (fit.kind === "convert") convs.push(t("{name} {q1} {u1} → {q2} {u2}", { name: item.name, q1: fmt(x.qty), u1: t(x.unit), q2: fmt(Math.round(add * 100) / 100), u2: t(item.unit) }));
-        await Store.adjust(item.id, Math.round(add * 100) / 100, add < 0 ? "adjust" : "restock", purchaseId);   // 退货扣库存（记成「调整」，不算补货）
+        await Store.adjust(item.id, Math.round(add * 100) / 100, add < 0 ? "adjust" : "restock", purchaseId, pastAt(x.now));   // 退货扣库存（记成「调整」，不算补货）
         stocked++;
       }
     }

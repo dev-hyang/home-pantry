@@ -7,9 +7,9 @@ import { state } from "../state.js";
  * undo_restock 会提示先执行 111。第一次发现缺列 / 缺函数就记住（刷新页面后再试一次）。 */
 const LOG_BASE = "id,item_id,delta,reason,created_at", LOG_NEW = ",voided_at,purchase_id";
 /* 缺列 / 缺函数的判断只管 60 秒：用户在页面开着的时候刚执行完迁移，不用刷新也能自己恢复 */
-let logsOffUntil = 0, adjustOffUntil = 0;
-const logsNewOn = () => Date.now() >= logsOffUntil, adjustNewOn = () => Date.now() >= adjustOffUntil;
-const missing = (e) => /voided_at|purchase_id|p_purchase|schema cache|Could not find the function/i.test(e?.message || "");
+let logsOffUntil = 0, adjustOffUntil = 0, atOffUntil = 0;
+const logsNewOn = () => Date.now() >= logsOffUntil, adjustNewOn = () => Date.now() >= adjustOffUntil, atNewOn = () => Date.now() >= atOffUntil;
+const missing = (e) => /voided_at|purchase_id|p_purchase|p_at|recorded_at|schema cache|Could not find the function/i.test(e?.message || "");
 
 export const cloudPantry = {
   /** 迁移 111 是不是已经执行（读日志 / 调整库存没出过缺列、缺函数的错就算已执行） */
@@ -59,6 +59,7 @@ export const cloudPantry = {
   async addItems(list) {
     const rows = list.map((it) => {
       const r = pick(it, ITEM_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+      if (it.created_at) r.created_at = it.created_at;   // 补录以前的购物：新物品算购买那天建的
       if (r.asset_ids == null) delete r.asset_ids;   // 这一列非空、有默认值：没有关联设备时不传，让数据库填 []（传 null 会违反约束）
       return r;
     });
@@ -86,7 +87,14 @@ export const cloudPantry = {
     if (old && old !== cat) for (const table of ["purchases", "shopping_list"]) this.must(await this.sb.from(table).update({ category: cat }).eq("household_id", this.hid).eq("item_id", id).eq("category", old));
   },
   /** purchaseId = 这次入库对应的花费（录入购物 / 购物车买到时带上，撤销入库时用来找到那笔花费） */
-  async adjust(id, delta, reason, purchaseId = null) {
+  /** at = 实际发生的时间（补录以前的购物时传购买日；迁移 113，没执行就退回按现在记） */
+  async adjust(id, delta, reason, purchaseId = null, at = null) {
+    if (at && atNewOn()) {
+      const r = await this.sb.rpc("adjust_stock", { p_item_id: id, p_delta: delta, p_reason: reason, p_purchase: purchaseId || null, p_at: at });
+      if (!r.error) return;
+      if (!missing(r.error)) throw new Error(r.error.message);
+      atOffUntil = Date.now() + 60e3;   // 113 还没执行：这一分钟退回不带时间的调用
+    }
     if (purchaseId && adjustNewOn()) {
       const r = await this.sb.rpc("adjust_stock", { p_item_id: id, p_delta: delta, p_reason: reason, p_purchase: purchaseId });
       if (!r.error) return;

@@ -51,7 +51,7 @@ export const demoPantry = {
   async listLogsSince(iso) { const since = new Date(iso).getTime(); return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since).map((l) => ({ ...l })); },
   async addItems(list) {
     const now = new Date().toISOString();
-    for (const it of list) this.db.items.push({ ...it, id: uid(), created_at: now, updated_at: now });
+    for (const it of list) this.db.items.push({ ...it, id: uid(), created_at: it.created_at || now, updated_at: now });
     this.persist();
   },
   async saveItem(it) {
@@ -95,12 +95,12 @@ export const demoPantry = {
     if (act > 0) this.db.logs.push({ id: uid(), item_id: it.id, delta: act, reason: "restock", created_at: l.created_at, purchase_id: l.purchase_id || null });
     this.persist(); return { quantity: it.quantity, deducted: ded };
   },
-  async adjust(id, delta, reason, purchaseId = null) {
+  async adjust(id, delta, reason, purchaseId = null, at = null) {
     const it = this.db.items.find((x) => x.id === id);
     if (!it) throw new Error("物品不存在");
     const oldq = num(it.quantity), newq = Math.max(0, Math.round((oldq + delta) * 100) / 100);
     it.quantity = newq; it.updated_at = new Date().toISOString();
-    if (newq !== oldq) this.db.logs.push({ id: uid(), item_id: id, delta: newq - oldq, reason, created_at: it.updated_at, ...(purchaseId ? { purchase_id: purchaseId } : {}) });
+    if (newq !== oldq) this.db.logs.push({ id: uid(), item_id: id, delta: newq - oldq, reason, created_at: at && at < it.updated_at ? at : it.updated_at, ...(purchaseId ? { purchase_id: purchaseId } : {}) });
     this.persist();
   },
   /** 不再提醒 / 暂停提醒：until = 'YYYY-MM-DD'（到这天之前不提醒），'9999-12-31' = 一直不提醒，null = 恢复 */

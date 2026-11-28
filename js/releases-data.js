@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-28.32", title: { zh: "补录以前的购物：入库按购买那天算", en: "Back-dated purchases are stocked on the day you bought them" }, items: [
+    { k: "better", zh: "补录以前的小票或订单时，新建的物品和入库记录按购买日期算，不再显示成“今天刚入库”。今天的购物不受影响。", en: "When you enter an older receipt or order, new items and stock-in records now use the purchase date instead of today. Today's purchases are unchanged." }
+  ] },
   { v: "2026-11-28.31", title: { zh: "库存里能看到、也能按「适用人群」筛选", en: "See and filter by who a medicine is for" }, items: [
     { k: "new", zh: "标了适用人群的药品，在库存列表的小字里会显示（例如 👥儿童、成人）。", en: "Medicines with a tag now show it in the stock list (for example 👥 Children, Adults)." },
     { k: "new", zh: "库存列表多了“按适用人群筛选”，还能找出药品里还没标人群的；没有任何物品标过时不会出现。", en: "The stock list can be filtered by who it is for, including medicines not tagged yet; it only appears once something is tagged." }
