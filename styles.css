@@ -888,7 +888,7 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .alert-row .space-tag { margin-right: 6px; }
 .cat-hint { margin: 6px 2px 0; font-size: 13px; }
 /* 银行 / 信用卡导入：按商家合并的清单，每行 勾选 + 商家 + 分类下拉 */
-.bank-pick, .bank-sum, .bank-go, .bank-map { margin-top: 10px; }
+.bank-pick, .bank-sum, .bank-go, .bank-map, .bank-overlap { margin-top: 10px; }
 .bank-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; }
 .bank-list li select { grid-column: 1 / -1; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; min-height: 38px; font-size: 14px; }
 .bank-list .grow { min-width: 0; overflow-wrap: anywhere; }

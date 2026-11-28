@@ -2,6 +2,7 @@
 import { AA_BACK, redundantRules, ruleCat, ruleUse, staleRules, userRules } from "./bank-transfers.js";
 import { BATCH_KEEP, S, tableRows } from "./bank-rows.js";
 import { NO_ACCT, accountHtml, coverageHtml, reconcileHtml } from "./bank-accounts-ai.js";
+import { overlapHtml } from "./bank-overlap.js";
 import { Store } from "../core/store.js";
 import { adults, kindOptionsHtml, myPersonId } from "../income/logic.js";
 import { aiReady } from "../core/ai.js";
@@ -102,6 +103,7 @@ function panelHtml() {
     ${auto.length ? `<section class="section"><details class="ref-panel panel" ${todo.length ? "" : "open"}><summary><b>${t("已自动归类")}</b><small>${t("{n} 个商家，可以改", { n: auto.length })}</small><span class="ui-chev" aria-hidden="true">›</span></summary><ul class="restock-list bank-list ref-body">${auto.map(groupRow).join("")}</ul></details></section>` : ""}
     ${incomeSection(incs)}
     ${skipped.length ? `<section class="section"><details class="ref-panel panel"><summary><b>${t("默认跳过")}</b><small>${t("还款 / 转账 / 收入")}</small><span class="ui-chev" aria-hidden="true">›</span></summary><ul class="restock-list bank-list ref-body">${skipped.map(groupRow).join("")}</ul></details></section>` : ""}
+    ${overlapHtml(S.rows, batches, S.account)}
     <div class="panel bank-go"><label class="check-inline"><input type="checkbox" data-bank-remember ${S.remember ? "checked" : ""}><span>${t("记住我选的归类（下次同一商家自动归类，全家共用）")}</span></label>
       ${accountHtml()}
       <div class="ui-acts"><button type="button" class="ui-btn" data-tone="primary" data-bank-act="import" ${(c.n || ic.n) && !S.busy ? "" : "disabled"}>${S.busy ? t("导入中…") : ic.n ? t("导入 {n} 笔花费 + {m} 笔收入", { n: c.n, m: ic.n }) : t("导入 {n} 笔", { n: c.n })}</button></div></div>
